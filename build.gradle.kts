@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.vanniktech.maven.publish")
 }
 
 android {
@@ -34,4 +35,44 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+}
+
+mavenPublishing {
+    publishToMavenCentral(
+        com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL,
+        automaticRelease = true
+    )
+    signAllPublications()
+
+    coordinates("co.rivium", "rivium-flags-android", "0.1.0")
+
+    pom {
+        name.set("Rivium Flags Android SDK")
+        description.set("Feature Flags SDK for Android - Lightweight feature flag management with offline caching, rollout targeting, and multivariate flags")
+        inceptionYear.set("2026")
+        url.set("https://rivium.co")
+
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
+                distribution.set("repo")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("rivium")
+                name.set("Rivium")
+                email.set("founder@rivium.co")
+                url.set("https://rivium.co")
+            }
+        }
+
+        scm {
+            url.set("https://github.com/Rivium-co/rivium-android-flags-sdk")
+            connection.set("scm:git:git://github.com/Rivium-co/rivium-android-flags-sdk.git")
+            developerConnection.set("scm:git:ssh://git@github.com/Rivium-co/rivium-android-flags-sdk.git")
+        }
+    }
 }
