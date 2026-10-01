@@ -1,0 +1,3806 @@
+{
+  "schemaVersion": 2,
+  "contract": "docs/SDK-CONTRACT-v2.md",
+  "howToUse": "For each suite: load `flags` and `segments` exactly as GET /server/v2/flags returns them, evaluate each case (flagKey + context) with your SDK engine, and compare enabled, value (deep equality), variant and reason with `expected`. For hashVectors: bucket(flagKey, salt, purpose, id) must equal `bucket`.",
+  "hashVectors": [
+    {
+      "flagKey": "new-checkout",
+      "salt": "a1b2c3d4e5f6",
+      "purpose": "rollout",
+      "id": "user-1",
+      "input": "new-checkout.a1b2c3d4e5f6.rollout.user-1",
+      "bucket": 5947
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "a1b2c3d4e5f6",
+      "purpose": "variant",
+      "id": "user-1",
+      "input": "new-checkout.a1b2c3d4e5f6.variant.user-1",
+      "bucket": 1086
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "purpose": "rollout",
+      "id": "user-1",
+      "input": "new-checkout..rollout.user-1",
+      "bucket": 3746
+    },
+    {
+      "flagKey": "theme",
+      "salt": "a1b2c3d4e5f6",
+      "purpose": "variant",
+      "id": "alice",
+      "input": "theme.a1b2c3d4e5f6.variant.alice",
+      "bucket": 4133
+    },
+    {
+      "flagKey": "theme",
+      "salt": "a1b2c3d4e5f6",
+      "purpose": "variant",
+      "id": "3f1c2b8e-9d0a-4c51-a1f2-6f0b7e2d9c11",
+      "input": "theme.a1b2c3d4e5f6.variant.3f1c2b8e-9d0a-4c51-a1f2-6f0b7e2d9c11",
+      "bucket": 4615
+    },
+    {
+      "flagKey": "ünïcødé",
+      "salt": "ff",
+      "purpose": "rollout",
+      "id": "用户-1",
+      "input": "ünïcødé.ff.rollout.用户-1",
+      "bucket": 3267
+    },
+    {
+      "flagKey": "rollout-30",
+      "salt": "a1b2c3d4e5f6",
+      "purpose": "rollout",
+      "id": "bob",
+      "input": "rollout-30.a1b2c3d4e5f6.rollout.bob",
+      "bucket": 7659
+    }
+  ],
+  "suites": [
+    {
+      "name": "basics",
+      "description": "Off, on, off value, missing flag in payload, context fields winning over attributes (§6.3, §6.4).",
+      "flags": [
+        {
+          "valueType": "boolean",
+          "enabled": false,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "off-bool"
+        },
+        {
+          "valueType": "string",
+          "enabled": false,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [
+            {
+              "key": "new",
+              "value": "modern",
+              "weight": 100
+            }
+          ],
+          "offValue": "classic",
+          "prerequisites": [],
+          "version": 1,
+          "key": "off-string"
+        },
+        {
+          "valueType": "json",
+          "enabled": false,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": null,
+          "prerequisites": [],
+          "version": 1,
+          "key": "off-null"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "on-bool"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "userId",
+                "operator": "equals",
+                "value": "real"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "context-wins"
+        }
+      ],
+      "segments": [],
+      "cases": [
+        {
+          "name": "disabled boolean serves offValue false",
+          "flagKey": "off-bool",
+          "context": {
+            "userId": "u1"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "DISABLED"
+          }
+        },
+        {
+          "name": "disabled string flag serves its offValue",
+          "flagKey": "off-string",
+          "context": {
+            "userId": "u1"
+          },
+          "expected": {
+            "enabled": false,
+            "value": "classic",
+            "variant": null,
+            "reason": "DISABLED"
+          }
+        },
+        {
+          "name": "null offValue is served as false",
+          "flagKey": "off-null",
+          "context": {
+            "userId": "u1"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "DISABLED"
+          }
+        },
+        {
+          "name": "on, no rules, 100% rollout: true without any id",
+          "flagKey": "on-bool",
+          "context": {},
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "attribute named userId is ignored; context.userId wins",
+          "flagKey": "context-wins",
+          "context": {
+            "userId": "fake",
+            "attributes": {
+              "userId": "real"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "context.userId used for the userId attribute",
+          "flagKey": "context-wins",
+          "context": {
+            "userId": "real",
+            "attributes": {
+              "userId": "fake"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        }
+      ]
+    },
+    {
+      "name": "operators",
+      "description": "Every rule operator, missing / null / array attributes, loose equality and numeric coercion (§6.8).",
+      "flags": [
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "plan",
+                "operator": "equals",
+                "value": "pro"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-0-equals"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "age",
+                "operator": "equals",
+                "value": "30"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-1-equals"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "beta",
+                "operator": "equals",
+                "value": true
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-2-equals"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "plan",
+                "operator": "not_equals",
+                "value": "pro"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-3-not_equals"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "country",
+                "operator": "in",
+                "value": [
+                  "AM",
+                  "GE",
+                  1
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-4-in"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "country",
+                "operator": "not_in",
+                "value": [
+                  "AM",
+                  "GE"
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-5-not_in"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "email",
+                "operator": "contains",
+                "value": "@rivium"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-6-contains"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "email",
+                "operator": "not_contains",
+                "value": "@rivium"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-7-not_contains"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "email",
+                "operator": "starts_with",
+                "value": "admin"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-8-starts_with"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "email",
+                "operator": "ends_with",
+                "value": ".co"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-9-ends_with"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "age",
+                "operator": "greater_than",
+                "value": 18
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-10-greater_than"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "age",
+                "operator": "greater_than_or_equal",
+                "value": "18"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-11-greater_than_or_equal"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "score",
+                "operator": "less_than",
+                "value": -1.5
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-12-less_than"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "score",
+                "operator": "less_than_or_equal",
+                "value": 10
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-13-less_than_or_equal"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "email",
+                "operator": "regex",
+                "value": "@(corp|rivium)\\.co$"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-14-regex"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "version",
+                "operator": "regex",
+                "value": "^2\\.[0-9]+\\."
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-15-regex"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "name",
+                "operator": "regex",
+                "value": "(unclosed"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-16-regex"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "company",
+                "operator": "exists",
+                "value": true
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-17-exists"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "company",
+                "operator": "exists",
+                "value": false
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-18-exists"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "tags",
+                "operator": "contains",
+                "value": "vip"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-19-contains"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "userId",
+                "operator": "equals",
+                "value": "user-42"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "op-20-equals"
+        }
+      ],
+      "segments": [],
+      "cases": [
+        {
+          "name": "plan equals \"pro\" — same string",
+          "flagKey": "op-0-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "plan": "pro"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "plan equals \"pro\" — case-sensitive",
+          "flagKey": "op-0-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "plan": "Pro"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "plan equals \"pro\" — missing attribute",
+          "flagKey": "op-0-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "plan equals \"pro\" — null attribute",
+          "flagKey": "op-0-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "plan": null
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "plan equals \"pro\" — array attribute: any element",
+          "flagKey": "op-0-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "plan": [
+                "free",
+                "pro"
+              ]
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "age equals \"30\" — number vs numeric string",
+          "flagKey": "op-1-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": 30
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "age equals \"30\" — string vs string",
+          "flagKey": "op-1-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": "30"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "age equals \"30\" — different strings",
+          "flagKey": "op-1-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": "30.0"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "beta equals true — boolean",
+          "flagKey": "op-2-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "beta": true
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "beta equals true — string \"true\" vs boolean",
+          "flagKey": "op-2-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "beta": "true"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "beta equals true — only lowercase \"true\"",
+          "flagKey": "op-2-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "beta": "TRUE"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "beta equals true — number vs boolean",
+          "flagKey": "op-2-equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "beta": 1
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "plan not_equals \"pro\" — different",
+          "flagKey": "op-3-not_equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "plan": "free"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "plan not_equals \"pro\" — same",
+          "flagKey": "op-3-not_equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "plan": "pro"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "plan not_equals \"pro\" — missing attribute: negation is true",
+          "flagKey": "op-3-not_equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "plan not_equals \"pro\" — array containing the value",
+          "flagKey": "op-3-not_equals",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "plan": [
+                "free",
+                "pro"
+              ]
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "country in [\"AM\",\"GE\",1] — listed",
+          "flagKey": "op-4-in",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "country": "AM"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "country in [\"AM\",\"GE\",1] — not listed",
+          "flagKey": "op-4-in",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "country": "US"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "country in [\"AM\",\"GE\",1] — numeric string vs listed number",
+          "flagKey": "op-4-in",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "country": "1"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "country in [\"AM\",\"GE\",1] — missing",
+          "flagKey": "op-4-in",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "country not_in [\"AM\",\"GE\"] — not listed",
+          "flagKey": "op-5-not_in",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "country": "US"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "country not_in [\"AM\",\"GE\"] — listed",
+          "flagKey": "op-5-not_in",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "country": "GE"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "country not_in [\"AM\",\"GE\"] — missing: negation is true",
+          "flagKey": "op-5-not_in",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email contains \"@rivium\" — substring",
+          "flagKey": "op-6-contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "dana@rivium.co"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email contains \"@rivium\" — case-sensitive",
+          "flagKey": "op-6-contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "dana@RIVIUM.co"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "email contains \"@rivium\" — non-string attribute",
+          "flagKey": "op-6-contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": 42
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "email not_contains \"@rivium\" — absent substring",
+          "flagKey": "op-7-not_contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "a@other.com"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email not_contains \"@rivium\" — present substring",
+          "flagKey": "op-7-not_contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "a@rivium.co"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "email not_contains \"@rivium\" — missing",
+          "flagKey": "op-7-not_contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email starts_with \"admin\" — prefix",
+          "flagKey": "op-8-starts_with",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "admin@x.com"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email starts_with \"admin\" — not a prefix",
+          "flagKey": "op-8-starts_with",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "x-admin@x.com"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "email ends_with \".co\" — suffix",
+          "flagKey": "op-9-ends_with",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "a@rivium.co"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email ends_with \".co\" — not a suffix",
+          "flagKey": "op-9-ends_with",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "a@rivium.com"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "age greater_than 18 — greater",
+          "flagKey": "op-10-greater_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": 19
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "age greater_than 18 — equal",
+          "flagKey": "op-10-greater_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": 18
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "age greater_than 18 — numeric string attribute",
+          "flagKey": "op-10-greater_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": "21"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "age greater_than 18 — non-numeric string",
+          "flagKey": "op-10-greater_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": "21 years"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "age greater_than 18 — exponent form is not numeric",
+          "flagKey": "op-10-greater_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": "1e3"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "age greater_than 18 — missing",
+          "flagKey": "op-10-greater_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "age greater_than_or_equal \"18\" — equal, rule value numeric string",
+          "flagKey": "op-11-greater_than_or_equal",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": 18
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "age greater_than_or_equal \"18\" — smaller",
+          "flagKey": "op-11-greater_than_or_equal",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "age": 17.5
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "score less_than -1.5 — less",
+          "flagKey": "op-12-less_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "score": -2
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "score less_than -1.5 — equal",
+          "flagKey": "op-12-less_than",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "score": "-1.5"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "score less_than_or_equal 10 — equal",
+          "flagKey": "op-13-less_than_or_equal",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "score": 10
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "score less_than_or_equal 10 — greater",
+          "flagKey": "op-13-less_than_or_equal",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "score": 10.01
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "email regex \"@(corp|rivium)\\\\.co$\" — match at the end",
+          "flagKey": "op-14-regex",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "a@rivium.co"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email regex \"@(corp|rivium)\\\\.co$\" — anchored with $",
+          "flagKey": "op-14-regex",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "a@rivium.com"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "email regex \"@(corp|rivium)\\\\.co$\" — unanchored search",
+          "flagKey": "op-14-regex",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": "x a@corp.co"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "email regex \"@(corp|rivium)\\\\.co$\" — non-string",
+          "flagKey": "op-14-regex",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "email": 5
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "version regex \"^2\\\\.[0-9]+\\\\.\" — match",
+          "flagKey": "op-15-regex",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "version": "2.13.0"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "version regex \"^2\\\\.[0-9]+\\\\.\" — no match",
+          "flagKey": "op-15-regex",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "version": "12.1.0"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "name regex \"(unclosed\" — invalid pattern never matches",
+          "flagKey": "op-16-regex",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "name": "(unclosed"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "company exists true — present",
+          "flagKey": "op-17-exists",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "company": "Rivium"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "company exists true — empty string is present",
+          "flagKey": "op-17-exists",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "company": ""
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "company exists true — null is absent",
+          "flagKey": "op-17-exists",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "company": null
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "company exists true — missing",
+          "flagKey": "op-17-exists",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "company exists false — missing",
+          "flagKey": "op-18-exists",
+          "context": {
+            "userId": "u1",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "company exists false — null",
+          "flagKey": "op-18-exists",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "company": null
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "company exists false — present",
+          "flagKey": "op-18-exists",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "company": "x"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "tags contains \"vip\" — array attribute: any element contains",
+          "flagKey": "op-19-contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "tags": [
+                "new",
+                "vip-gold"
+              ]
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "tags contains \"vip\" — no element contains",
+          "flagKey": "op-19-contains",
+          "context": {
+            "userId": "u1",
+            "attributes": {
+              "tags": [
+                "new"
+              ]
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "userId equals \"user-42\" — built-in userId attribute comes from context.userId",
+          "flagKey": "op-20-equals",
+          "context": {
+            "userId": "user-42",
+            "attributes": {}
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        }
+      ]
+    },
+    {
+      "name": "groups",
+      "description": "AND / OR, nesting, empty groups (§6.8).",
+      "flags": [
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "OR",
+            "rules": [
+              {
+                "attribute": "plan",
+                "operator": "equals",
+                "value": "business"
+              },
+              {
+                "operator": "AND",
+                "rules": [
+                  {
+                    "attribute": "plan",
+                    "operator": "equals",
+                    "value": "pro"
+                  },
+                  {
+                    "attribute": "country",
+                    "operator": "in",
+                    "value": [
+                      "AM",
+                      "GE"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "nested"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "OR",
+            "rules": []
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "empty-or"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "operator": "OR",
+                "rules": []
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "empty-nested"
+        }
+      ],
+      "segments": [],
+      "cases": [
+        {
+          "name": "first OR branch",
+          "flagKey": "nested",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "plan": "business"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "second OR branch (inner AND true)",
+          "flagKey": "nested",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "plan": "pro",
+              "country": "GE"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "inner AND false",
+          "flagKey": "nested",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "plan": "pro",
+              "country": "US"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "a group with no items matches (no rules)",
+          "flagKey": "empty-or",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "nested empty group: no conditions anywhere = no rules",
+          "flagKey": "empty-nested",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        }
+      ]
+    },
+    {
+      "name": "segments",
+      "description": "in_segment / not_in_segment, missing segments, empty segments (§6.8).",
+      "flags": [
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "segment",
+                "operator": "in_segment",
+                "value": [
+                  "beta"
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "seg-beta"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "segment",
+                "operator": "in_segment",
+                "value": [
+                  "missing",
+                  "staff"
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "seg-any"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "segment",
+                "operator": "not_in_segment",
+                "value": [
+                  "beta"
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "seg-not"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "segment",
+                "operator": "in_segment",
+                "value": [
+                  "missing"
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "seg-missing"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "segment",
+                "operator": "not_in_segment",
+                "value": [
+                  "missing"
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "seg-not-missing"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "segment",
+                "operator": "in_segment",
+                "value": [
+                  "everyone"
+                ]
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "seg-everyone"
+        }
+      ],
+      "segments": [
+        {
+          "key": "beta",
+          "rules": {
+            "operator": "OR",
+            "rules": [
+              {
+                "attribute": "email",
+                "operator": "ends_with",
+                "value": "@rivium.co"
+              },
+              {
+                "attribute": "betaOptIn",
+                "operator": "equals",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "key": "staff",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "role",
+                "operator": "equals",
+                "value": "staff"
+              }
+            ]
+          }
+        },
+        {
+          "key": "everyone",
+          "rules": {
+            "operator": "AND",
+            "rules": []
+          }
+        }
+      ],
+      "cases": [
+        {
+          "name": "in segment (first OR rule)",
+          "flagKey": "seg-beta",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "email": "a@rivium.co"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "in segment (second OR rule)",
+          "flagKey": "seg-beta",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "betaOptIn": "true"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "not in segment",
+          "flagKey": "seg-beta",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "email": "a@x.com"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "any of several keys; a missing key is skipped",
+          "flagKey": "seg-any",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "role": "staff"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "not_in_segment: outside",
+          "flagKey": "seg-not",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "email": "a@x.com"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "not_in_segment: inside",
+          "flagKey": "seg-not",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "email": "a@rivium.co"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "missing segment never matches",
+          "flagKey": "seg-missing",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "not_in a missing segment is true",
+          "flagKey": "seg-not-missing",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "segment with no conditions matches everyone",
+          "flagKey": "seg-everyone",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        }
+      ]
+    },
+    {
+      "name": "rollout",
+      "description": "Percentage rollout, bucketing id choice, NO_BUCKETING_ID (§6.4 step 5, §6.5). Hash-dependent cases have no hand-written expectation.",
+      "flags": [
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 0,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "rollout-0"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 30,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "rollout-30"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 30,
+          "salt": "000000000000",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "rollout-30-other-salt"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 0,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "plan",
+                "operator": "equals",
+                "value": "pro"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "rules-before-rollout"
+        }
+      ],
+      "segments": [],
+      "cases": [
+        {
+          "name": "0% rollout: off without needing an id",
+          "flagKey": "rollout-0",
+          "context": {},
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "partial rollout without userId or anonymousId",
+          "flagKey": "rollout-30",
+          "context": {
+            "attributes": {
+              "plan": "pro"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NO_BUCKETING_ID"
+          }
+        },
+        {
+          "name": "empty strings are not ids",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "",
+            "anonymousId": ""
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NO_BUCKETING_ID"
+          }
+        },
+        {
+          "name": "rules are checked before rollout",
+          "flagKey": "rules-before-rollout",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "NOT_TARGETED"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-1",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-1"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-2",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-2"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-3",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-3"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-4",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-4"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-5",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-5"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-6",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-6"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-7",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-7"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=user-8",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-8"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=alice",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "alice"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=bob",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "bob"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% userId=ünïcødé-用户",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "ünïcødé-用户"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-1 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-1"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-2 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-2"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-3 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-3"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-4 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-4"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-5 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-5"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-6 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-6"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-7 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-7"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=user-8 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "user-8"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=alice (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "alice"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=bob (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "bob"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 30% anonymousId=ünïcødé-用户 (no userId)",
+          "flagKey": "rollout-30",
+          "context": {
+            "anonymousId": "ünïcødé-用户"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "userId wins over anonymousId (userId=user-1)",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-1",
+            "anonymousId": "anon-zzz"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "userId wins over anonymousId (userId=user-2)",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-2",
+            "anonymousId": "anon-zzz"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "userId wins over anonymousId (userId=user-3)",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-3",
+            "anonymousId": "anon-zzz"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "userId wins over anonymousId (userId=user-4)",
+          "flagKey": "rollout-30",
+          "context": {
+            "userId": "user-4",
+            "anonymousId": "anon-zzz"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-1",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-1"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-2",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-2"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-3",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-3"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-4",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-4"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-5",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-5"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-6",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-6"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-7",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-7"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=user-8",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "user-8"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=alice",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "alice"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=bob",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "bob"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "other salt reshuffles userId=ünïcødé-用户",
+          "flagKey": "rollout-30-other-salt",
+          "context": {
+            "userId": "ünïcødé-用户"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "variants",
+      "description": "Weighted variants by bucket, single 100% variant, legacy weights < 100 (§6.6). Value types string / number / json.",
+      "flags": [
+        {
+          "valueType": "string",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [
+            {
+              "key": "dark",
+              "value": "dark",
+              "weight": 50
+            },
+            {
+              "key": "light",
+              "value": "light",
+              "weight": 30
+            },
+            {
+              "key": "auto",
+              "value": "system",
+              "weight": 20
+            }
+          ],
+          "offValue": "light",
+          "prerequisites": [],
+          "version": 1,
+          "key": "theme"
+        },
+        {
+          "valueType": "number",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [
+            {
+              "key": "high",
+              "value": 100,
+              "weight": 100
+            }
+          ],
+          "offValue": 10,
+          "prerequisites": [],
+          "version": 1,
+          "key": "limit"
+        },
+        {
+          "valueType": "json",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [
+            {
+              "key": "v1",
+              "value": {
+                "a": 1,
+                "list": [
+                  1,
+                  2
+                ]
+              },
+              "weight": 0
+            },
+            {
+              "key": "v2",
+              "value": {
+                "a": 2,
+                "list": []
+              },
+              "weight": 100
+            }
+          ],
+          "offValue": {
+            "a": 1
+          },
+          "prerequisites": [],
+          "version": 1,
+          "key": "config"
+        },
+        {
+          "valueType": "string",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [
+            {
+              "key": "first",
+              "value": "first",
+              "weight": 30
+            },
+            {
+              "key": "second",
+              "value": "second",
+              "weight": 30
+            }
+          ],
+          "offValue": "x",
+          "prerequisites": [],
+          "version": 1,
+          "key": "legacy-weights"
+        },
+        {
+          "valueType": "string",
+          "enabled": true,
+          "rolloutPercentage": 50,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [
+            {
+              "key": "a",
+              "value": "A",
+              "weight": 50
+            },
+            {
+              "key": "b",
+              "value": "B",
+              "weight": 50
+            }
+          ],
+          "offValue": "off",
+          "prerequisites": [],
+          "version": 1,
+          "key": "split-rollout"
+        }
+      ],
+      "segments": [],
+      "cases": [
+        {
+          "name": "a single 100% variant needs no id",
+          "flagKey": "limit",
+          "context": {},
+          "expected": {
+            "enabled": true,
+            "value": 100,
+            "variant": "high",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "weight-0 variant is never chosen; 100% json variant",
+          "flagKey": "config",
+          "context": {
+            "userId": "u1"
+          },
+          "expected": {
+            "enabled": true,
+            "value": {
+              "a": 2,
+              "list": []
+            },
+            "variant": "v2",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "split without any id",
+          "flagKey": "theme",
+          "context": {},
+          "expected": {
+            "enabled": false,
+            "value": "light",
+            "variant": null,
+            "reason": "NO_BUCKETING_ID"
+          }
+        },
+        {
+          "name": "theme split userId=user-1",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-1"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "light",
+            "variant": "light",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=user-2",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-2"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "system",
+            "variant": "auto",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=user-3",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-3"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "light",
+            "variant": "light",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=user-4",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-4"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "light",
+            "variant": "light",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=user-5",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-5"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "dark",
+            "variant": "dark",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=user-6",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-6"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "light",
+            "variant": "light",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=user-7",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-7"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "dark",
+            "variant": "dark",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=user-8",
+          "flagKey": "theme",
+          "context": {
+            "userId": "user-8"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "dark",
+            "variant": "dark",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=alice",
+          "flagKey": "theme",
+          "context": {
+            "userId": "alice"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "dark",
+            "variant": "dark",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=bob",
+          "flagKey": "theme",
+          "context": {
+            "userId": "bob"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "light",
+            "variant": "light",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "theme split userId=ünïcødé-用户",
+          "flagKey": "theme",
+          "context": {
+            "userId": "ünïcødé-用户"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "light",
+            "variant": "light",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-1: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-1"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "first",
+            "variant": "first",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-2: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-2"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "first",
+            "variant": "first",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-3: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-3"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "second",
+            "variant": "second",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-4: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-4"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "first",
+            "variant": "first",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-5: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-5"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "second",
+            "variant": "second",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-6: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-6"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "second",
+            "variant": "second",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-7: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-7"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "second",
+            "variant": "second",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=user-8: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "user-8"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "first",
+            "variant": "first",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=alice: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "alice"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "first",
+            "variant": "first",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=bob: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "bob"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "second",
+            "variant": "second",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "legacy weights (sum 60) userId=ünïcødé-用户: bucket ≥ 6000 → first variant",
+          "flagKey": "legacy-weights",
+          "context": {
+            "userId": "ünïcødé-用户"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "first",
+            "variant": "first",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-1",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-1"
+          },
+          "expected": {
+            "enabled": false,
+            "value": "off",
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-2",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-2"
+          },
+          "expected": {
+            "enabled": false,
+            "value": "off",
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-3",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-3"
+          },
+          "expected": {
+            "enabled": false,
+            "value": "off",
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-4",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-4"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "A",
+            "variant": "a",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-5",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-5"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "A",
+            "variant": "a",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-6",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-6"
+          },
+          "expected": {
+            "enabled": false,
+            "value": "off",
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-7",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-7"
+          },
+          "expected": {
+            "enabled": false,
+            "value": "off",
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=user-8",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "user-8"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "A",
+            "variant": "a",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=alice",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "alice"
+          },
+          "expected": {
+            "enabled": false,
+            "value": "off",
+            "variant": null,
+            "reason": "OUTSIDE_ROLLOUT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=bob",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "bob"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "A",
+            "variant": "a",
+            "reason": "VARIANT"
+          }
+        },
+        {
+          "name": "rollout 50% then split userId=ünïcødé-用户",
+          "flagKey": "split-rollout",
+          "context": {
+            "userId": "ünïcødé-用户"
+          },
+          "expected": {
+            "enabled": true,
+            "value": "B",
+            "variant": "b",
+            "reason": "VARIANT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "prerequisites",
+      "description": "Prerequisites in the same environment: enabled requirement, expectedValue deep equality, missing, chains, cycles (§6.7).",
+      "flags": [
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "base-on"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": false,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "base-off"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "plan",
+                "operator": "equals",
+                "value": "pro"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [],
+          "version": 1,
+          "key": "base-targeted"
+        },
+        {
+          "valueType": "json",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [
+            {
+              "key": "v",
+              "value": {
+                "mode": "on",
+                "n": 1,
+                "list": [
+                  1,
+                  2
+                ]
+              },
+              "weight": 100
+            }
+          ],
+          "offValue": {
+            "mode": "off"
+          },
+          "prerequisites": [],
+          "version": 1,
+          "key": "base-json"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "base-on"
+            }
+          ],
+          "version": 1,
+          "key": "needs-on"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "base-off"
+            }
+          ],
+          "version": 1,
+          "key": "needs-off-flag"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "base-off",
+              "expectedValue": false
+            }
+          ],
+          "version": 1,
+          "key": "needs-off-value"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "base-targeted"
+            }
+          ],
+          "version": 1,
+          "key": "needs-targeted"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "base-json",
+              "expectedValue": {
+                "list": [
+                  1,
+                  2
+                ],
+                "n": 1,
+                "mode": "on"
+              }
+            }
+          ],
+          "version": 1,
+          "key": "needs-json"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "base-json",
+              "expectedValue": {
+                "mode": "on"
+              }
+            }
+          ],
+          "version": 1,
+          "key": "needs-json-wrong"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "does-not-exist"
+            }
+          ],
+          "version": 1,
+          "key": "needs-missing"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "needs-targeted"
+            }
+          ],
+          "version": 1,
+          "key": "chain-top"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "cycle-b"
+            }
+          ],
+          "version": 1,
+          "key": "cycle-a"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": null,
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "cycle-a"
+            }
+          ],
+          "version": 1,
+          "key": "cycle-b"
+        },
+        {
+          "valueType": "boolean",
+          "enabled": true,
+          "rolloutPercentage": 100,
+          "salt": "a1b2c3d4e5f6",
+          "rules": {
+            "operator": "AND",
+            "rules": [
+              {
+                "attribute": "plan",
+                "operator": "equals",
+                "value": "never"
+              }
+            ]
+          },
+          "variants": [],
+          "offValue": false,
+          "prerequisites": [
+            {
+              "flagKey": "base-off"
+            }
+          ],
+          "version": 1,
+          "key": "prereq-before-rules"
+        }
+      ],
+      "segments": [],
+      "cases": [
+        {
+          "name": "prerequisite on",
+          "flagKey": "needs-on",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "prerequisite off",
+          "flagKey": "needs-off-flag",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "PREREQUISITE_FAILED"
+          }
+        },
+        {
+          "name": "expectedValue false matches an off prerequisite",
+          "flagKey": "needs-off-value",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "prerequisite targeted: user matches",
+          "flagKey": "needs-targeted",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "plan": "pro"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "prerequisite targeted: user does not match",
+          "flagKey": "needs-targeted",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "plan": "free"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "PREREQUISITE_FAILED"
+          }
+        },
+        {
+          "name": "expectedValue deep-equal (object key order ignored)",
+          "flagKey": "needs-json",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "expectedValue with fewer keys does not match",
+          "flagKey": "needs-json-wrong",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "PREREQUISITE_FAILED"
+          }
+        },
+        {
+          "name": "missing prerequisite flag",
+          "flagKey": "needs-missing",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "PREREQUISITE_FAILED"
+          }
+        },
+        {
+          "name": "chain passes",
+          "flagKey": "chain-top",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "plan": "pro"
+            }
+          },
+          "expected": {
+            "enabled": true,
+            "value": true,
+            "variant": null,
+            "reason": "ON"
+          }
+        },
+        {
+          "name": "chain fails at the bottom",
+          "flagKey": "chain-top",
+          "context": {
+            "userId": "u",
+            "attributes": {
+              "plan": "free"
+            }
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "PREREQUISITE_FAILED"
+          }
+        },
+        {
+          "name": "cycle fails (never loops)",
+          "flagKey": "cycle-a",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "PREREQUISITE_FAILED"
+          }
+        },
+        {
+          "name": "prerequisites are checked before rules",
+          "flagKey": "prereq-before-rules",
+          "context": {
+            "userId": "u"
+          },
+          "expected": {
+            "enabled": false,
+            "value": false,
+            "variant": null,
+            "reason": "PREREQUISITE_FAILED"
+          }
+        }
+      ]
+    }
+  ]
+}

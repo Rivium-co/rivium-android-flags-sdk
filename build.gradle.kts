@@ -19,6 +19,7 @@ android {
 
     testOptions {
         targetSdk = 34
+        unitTests.isReturnDefaultValues = true
     }
 
     compileOptions {
@@ -35,6 +36,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 }
 
 mavenPublishing {
@@ -44,11 +48,11 @@ mavenPublishing {
     )
     signAllPublications()
 
-    coordinates("co.rivium", "rivium-flags-android", "0.1.0")
+    coordinates("co.rivium", "rivium-flags-android", "0.2.0")
 
     pom {
         name.set("Rivium Flags Android SDK")
-        description.set("Feature Flags SDK for Android - Lightweight feature flag management with offline caching, rollout targeting, and multivariate flags")
+        description.set("Rivium Flags client SDK for Android - server-evaluated feature flags with offline cache, typed getters and reasons")
         inceptionYear.set("2026")
         url.set("https://rivium.co")
 

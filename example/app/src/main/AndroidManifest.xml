@@ -7,7 +7,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="RiviumFlags Test"
+        android:label="Rivium Flags Example"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <activity
             android:name=".MainActivity"
